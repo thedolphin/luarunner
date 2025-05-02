@@ -91,22 +91,23 @@ print("=== [yyjson load and modify] =======================")
 -- yyo = yyjson.load('{"a": }')
 
 yyjsonobj = yyjson.load_mut(json_string)
-print(yyjsonobj.int32)
-print(yyjsonobj.object.nested_object.inner_float)
-yyjsonobj.uuid = nil
-yyjsonobj.boolean = yyjson.null
-yyjsonobj.newtestval = {test = 1, test1 = {test2 = nil}}
-yyjsonobj.array[4] = 8
+-- print(yyjsonobj.int32)
+-- print(yyjsonobj.object.nested_object.inner_float)
+-- yyjsonobj.uuid = nil
+-- yyjsonobj.boolean = yyjson.null
+-- yyjsonobj.newtestval = {test = 1, test1 = {test2 = nil}}
+-- yyjsonobj.array[4] = 8
+yyjsonobj.copy = yyjsonobj.object
 print(tostring(yyjsonobj))
 
-print("=== [yyjson create] =======================")
+-- print("=== [yyjson create] =======================")
 
-local newo = yyjson.new()
-newo.test = 1
-newo.test2 = yyjson.null
-newo.test3 = {"testval", "testval1"}
-newo.test4 = {test5 = "testval2"}
-print(tostring(newo))
+-- local newo = yyjson.new()
+-- newo.test = 1
+-- newo.test2 = yyjson.null
+-- newo.test3 = {"testval", "testval1"}
+-- newo.test4 = {test5 = "testval2"}
+-- print(tostring(newo))
 
 print("=== [yyjson done] =======================")
 

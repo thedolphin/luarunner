@@ -26,13 +26,13 @@
 
 #include <yyjson.h>
 
-typedef struct {
+typedef struct yyjson_node_struct {
     yyjson_doc *doc;
     yyjson_val *root;
     int is_root;
 } yyjson_node;
 
-typedef struct {
+typedef struct yyjson_mut_node_struct {
     yyjson_mut_doc *mut_doc;
     yyjson_mut_val *mut_root;
     int is_root;
@@ -203,12 +203,13 @@ int lua_yyjson_newindex(lua_State *L) {
     return luaL_error(L, "attempt to write to readonly object");
 }
 
-yyjson_mut_val *lua_yyjson_val(lua_State *L, int idx, yyjson_mut_doc *mut_doc) {
+yyjson_mut_val *lua_yyjson_val(lua_State *L, int idx, yyjson_mut_node *dst_node) {
 
     const char *str;
     size_t strlen;
     double luanum;
     yyjson_mut_val *newval;
+    yyjson_mut_node *src_node;
 
     int value_type = lua_type(L, idx);
 
@@ -217,33 +218,37 @@ yyjson_mut_val *lua_yyjson_val(lua_State *L, int idx, yyjson_mut_doc *mut_doc) {
         return NULL;
 
     case LUA_TBOOLEAN:
-        return yyjson_mut_bool(mut_doc, lua_toboolean(L, idx));
+        return yyjson_mut_bool(dst_node->mut_doc, lua_toboolean(L, idx));
 
     case LUA_TNUMBER:
         luanum = lua_tonumber(L, idx);
         if (luanum == (int64_t)luanum)
-            return yyjson_mut_int(mut_doc, (int64_t)luanum);
-        return yyjson_mut_real(mut_doc, luanum);
+            return yyjson_mut_int(dst_node->mut_doc, (int64_t)luanum);
+        return yyjson_mut_real(dst_node->mut_doc, luanum);
 
     case LUA_TSTRING:
         str = lua_tolstring(L, idx, &strlen);
-        return yyjson_mut_strncpy(mut_doc, str, strlen);
+        return yyjson_mut_strncpy(dst_node->mut_doc, str, strlen);
 
     case LUA_TTABLE:
-        newval = yyjson_mut_obj(mut_doc);
+        newval = yyjson_mut_obj(dst_node->mut_doc);
         lua_pushnil(L);
         while(lua_next(L, -2) != 0) {
             yyjson_mut_obj_add(
                 newval,
-                lua_yyjson_val(L, -2, mut_doc),
-                lua_yyjson_val(L, -1, mut_doc));
+                lua_yyjson_val(L, -2, dst_node),
+                lua_yyjson_val(L, -1, dst_node));
             lua_pop(L, 1);
         }
         return newval;
 
+    case LUA_TUSERDATA:
+        src_node = (yyjson_mut_node *)luaL_checkudata(L, idx, "yyjson_mut_mt");
+        return yyjson_mut_val_mut_copy(dst_node->mut_doc, src_node->mut_root);
+
     case LUA_TLIGHTUSERDATA:
         if (lua_touserdata(L, 3) == NULL) {
-            return yyjson_mut_null(mut_doc);
+            return yyjson_mut_null(dst_node->mut_doc);
         }
     default:
         luaL_error(L, "invalid value");
@@ -261,7 +266,7 @@ int lua_yyjson_newindex_mut(lua_State *L) {
     const char * key;
     size_t keylen;
 
-    newval = lua_yyjson_val(L, 3, node->mut_doc);
+    newval = lua_yyjson_val(L, 3, node);
 
     if (newval)
         if (node_type == YYJSON_TYPE_OBJ) {
@@ -290,10 +295,10 @@ int lua_yyjson_newindex_mut(lua_State *L) {
     return 0;
 }
 
-int lua_yyjson_write_mut(lua_State *L){
+int lua_yyjson_write_mut(lua_State *L) {
     yyjson_mut_node *node = (yyjson_mut_node *)luaL_checkudata(L, 1, "yyjson_mut_mt");
     size_t jsonlen;
-    char* json = yyjson_mut_write(node->mut_doc, 0, &jsonlen);
+    char* json = yyjson_mut_val_write(node->mut_root, 0, &jsonlen);
     lua_pushlstring(L, json, jsonlen);
     free(json);
     return 1;

@@ -40,6 +40,11 @@ print(j.object.nested_object.inner_float)
 -- modify fields
 j.uuid = nil -- delete
 j.boolean = yyjson.null -- overwrite with null
-j.newtestval = {test = 1, test1 = {test2 = "test"}}
+j.newobject = {test = 1, test1 = {test2 = "test"}}
 j.array[4] = 8
+j.copy = j.object -- copy subtrees
+
+-- serialize to json
+tostring(j) -- full document
+tostring(j.object) -- document part
 ```
