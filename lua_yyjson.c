@@ -187,8 +187,8 @@ int lua_yyjson_index_mut(lua_State *L) {
         break;
     case YYJSON_TYPE_ARR:
     case YYJSON_TYPE_OBJ:
-        newnode = lua_newuserdata(L, sizeof(yyjson_node));
-        memset(newnode, 0, sizeof(yyjson_node));
+        newnode = lua_newuserdata(L, sizeof(yyjson_mut_node));
+        memset(newnode, 0, sizeof(yyjson_mut_node));
         newnode->mut_doc = node->mut_doc;
         newnode->mut_root = val;
         luaL_getmetatable(L, "yyjson_mut_mt");
