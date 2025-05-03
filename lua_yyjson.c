@@ -8,8 +8,8 @@
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -20,9 +20,9 @@
  * SOFTWARE.
  */
 
+#include <lauxlib.h>
 #include <lua.h>
 #include <lualib.h>
-#include <lauxlib.h>
 
 #include <yyjson.h>
 
@@ -56,8 +56,8 @@ int lua_yyjson_new(lua_State *L) {
 
 int lua_yyjson_load(lua_State *L) {
 
-	size_t jsonlen;
-	const char *json = luaL_checklstring(L, -1, &jsonlen);
+    size_t jsonlen;
+    const char *json = luaL_checklstring(L, -1, &jsonlen);
 
     yyjson_node *node = lua_newuserdata(L, sizeof(yyjson_node));
     memset(node, 0, sizeof(yyjson_node));
@@ -79,8 +79,8 @@ int lua_yyjson_load(lua_State *L) {
 
 int lua_yyjson_load_mut(lua_State *L) {
 
-	size_t jsonlen;
-	const char *json = luaL_checklstring(L, -1, &jsonlen);
+    size_t jsonlen;
+    const char *json = luaL_checklstring(L, -1, &jsonlen);
 
     yyjson_mut_node *node = lua_newuserdata(L, sizeof(yyjson_mut_node));
     memset(node, 0, sizeof(yyjson_mut_node));
@@ -203,7 +203,8 @@ int lua_yyjson_newindex(lua_State *L) {
     return luaL_error(L, "attempt to write to readonly object");
 }
 
-yyjson_mut_val *lua_yyjson_val(lua_State *L, int idx, yyjson_mut_node *dst_node) {
+yyjson_mut_val *lua_yyjson_val(lua_State *L, int idx,
+                               yyjson_mut_node *dst_node) {
 
     const char *str;
     size_t strlen;
@@ -233,11 +234,9 @@ yyjson_mut_val *lua_yyjson_val(lua_State *L, int idx, yyjson_mut_node *dst_node)
     case LUA_TTABLE:
         newval = yyjson_mut_obj(dst_node->mut_doc);
         lua_pushnil(L);
-        while(lua_next(L, -2) != 0) {
-            yyjson_mut_obj_add(
-                newval,
-                lua_yyjson_val(L, -2, dst_node),
-                lua_yyjson_val(L, -1, dst_node));
+        while (lua_next(L, -2) != 0) {
+            yyjson_mut_obj_add(newval, lua_yyjson_val(L, -2, dst_node),
+                               lua_yyjson_val(L, -1, dst_node));
             lua_pop(L, 1);
         }
         return newval;
@@ -259,11 +258,12 @@ yyjson_mut_val *lua_yyjson_val(lua_State *L, int idx, yyjson_mut_node *dst_node)
 
 int lua_yyjson_newindex_mut(lua_State *L) {
 
-    yyjson_mut_node *node = (yyjson_mut_node *)luaL_checkudata(L, 1, "yyjson_mut_mt");
+    yyjson_mut_node *node =
+        (yyjson_mut_node *)luaL_checkudata(L, 1, "yyjson_mut_mt");
     yyjson_type node_type = yyjson_mut_get_type(node->mut_root);
     yyjson_mut_val *val, *newval;
 
-    const char * key;
+    const char *key;
     size_t keylen;
 
     newval = lua_yyjson_val(L, 3, node);
@@ -271,10 +271,9 @@ int lua_yyjson_newindex_mut(lua_State *L) {
     if (newval)
         if (node_type == YYJSON_TYPE_OBJ) {
             key = luaL_checklstring(L, 2, &keylen);
-            yyjson_mut_obj_put(
-                node->mut_root,
-                yyjson_mut_strncpy(node->mut_doc, key, keylen),
-                newval);
+            yyjson_mut_obj_put(node->mut_root,
+                               yyjson_mut_strncpy(node->mut_doc, key, keylen),
+                               newval);
         } else if (node_type == YYJSON_TYPE_ARR) {
             keylen = luaL_checkint(L, 2);
             yyjson_mut_arr_remove(node->mut_root, keylen);
@@ -282,23 +281,23 @@ int lua_yyjson_newindex_mut(lua_State *L) {
         } else {
             return luaL_error(L, "attempt to index scalar value");
         }
-    else
-        if (node_type == YYJSON_TYPE_OBJ) {
-            key = luaL_checklstring(L, 2, &keylen);
-            yyjson_mut_obj_remove_keyn(node->mut_root, key, keylen);
-        } else if (node_type == YYJSON_TYPE_ARR) {
-            yyjson_mut_arr_remove(node->mut_root, luaL_checkint(L, 2));
-        } else {
-            return luaL_error(L, "attempt to index scalar value");
-        }
-        
+    else if (node_type == YYJSON_TYPE_OBJ) {
+        key = luaL_checklstring(L, 2, &keylen);
+        yyjson_mut_obj_remove_keyn(node->mut_root, key, keylen);
+    } else if (node_type == YYJSON_TYPE_ARR) {
+        yyjson_mut_arr_remove(node->mut_root, luaL_checkint(L, 2));
+    } else {
+        return luaL_error(L, "attempt to index scalar value");
+    }
+
     return 0;
 }
 
 int lua_yyjson_write_mut(lua_State *L) {
-    yyjson_mut_node *node = (yyjson_mut_node *)luaL_checkudata(L, 1, "yyjson_mut_mt");
+    yyjson_mut_node *node =
+        (yyjson_mut_node *)luaL_checkudata(L, 1, "yyjson_mut_mt");
     size_t jsonlen;
-    char* json = yyjson_mut_val_write(node->mut_root, 0, &jsonlen);
+    char *json = yyjson_mut_val_write(node->mut_root, 0, &jsonlen);
     lua_pushlstring(L, json, jsonlen);
     free(json);
     return 1;
@@ -316,7 +315,8 @@ int lua_yyjson_gc(lua_State *L) {
 
 int lua_yyjson_gc_mut(lua_State *L) {
 
-    yyjson_mut_node *node = (yyjson_mut_node *)luaL_checkudata(L, 1, "yyjson_mut_mt");
+    yyjson_mut_node *node =
+        (yyjson_mut_node *)luaL_checkudata(L, 1, "yyjson_mut_mt");
     if (node->is_root) {
         yyjson_mut_doc_free(node->mut_doc);
     }
@@ -324,12 +324,10 @@ int lua_yyjson_gc_mut(lua_State *L) {
     return 0;
 }
 
-static const luaL_Reg yyjson_funcs[] = {
-    {"new", lua_yyjson_new},
-    {"load", lua_yyjson_load},
-    {"load_mut", lua_yyjson_load_mut},
-	{NULL, NULL}
-};
+static const luaL_Reg yyjson_funcs[] = {{"new", lua_yyjson_new},
+                                        {"load", lua_yyjson_load},
+                                        {"load_mut", lua_yyjson_load_mut},
+                                        {NULL, NULL}};
 
 int luaopen_yyjson(lua_State *L) {
 
