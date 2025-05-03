@@ -1,4 +1,4 @@
-// luarunner - пакет для взаимодействия с Lua
+// luarunner — a package for interacting with LuaJIT.
 package luarunner
 
 /*
@@ -25,16 +25,16 @@ import (
 	"unsafe"
 )
 
-// LuaRunner - виртуальная машина Lua
+// LuaRunner represents Lua VM
 type LuaRunner struct {
 	L *C.lua_State
 }
 
-// New инициализирует и возвращает новую машину Lua
+// New initializes and returns a new Lua VM
 func New() (*LuaRunner, error) {
 	L := C.luaL_newstate()
 	if L == nil {
-		return nil, errors.New("не удалось инициализировать Lua")
+		return nil, errors.New("failed to initialize Lua VM")
 	}
 
 	C.luaL_openlibs(L)
@@ -44,7 +44,7 @@ func New() (*LuaRunner, error) {
 	return &LuaRunner{L}, nil
 }
 
-// CheckFunction проверяет существование глобальной функции в текущей машине LUA
+// CheckFunction checks for the existence of a global function in the current Lua VM
 func (lua *LuaRunner) CheckFunction(funcName string) bool {
 	lua.GetGlobal(funcName)
 	v := C.lua_type(lua.L, -1)
@@ -56,9 +56,9 @@ func (lua *LuaRunner) CheckFunction(funcName string) bool {
 	return true
 }
 
-// Load загружает скрипт Lua и кладет код на вершину стека
-// Для исполнения нужно вызвать Run()
-// code - код Lua
+// Load loads a Lua script and pushes the code onto the top of the stack.
+// To execute it, you need to call Run().
+// code - Lua code
 func (lua *LuaRunner) Load(code string) error {
 	cCode := C.CString(code)
 	defer C.free(unsafe.Pointer(cCode))
@@ -67,16 +67,16 @@ func (lua *LuaRunner) Load(code string) error {
 	if res != 0 {
 		errorStr, err := lua.Pop()
 		if err != nil {
-			return fmt.Errorf("ошибка выполнения скрипта, ошибка получения описания ошибки %w", err)
+			return fmt.Errorf("script execution error, failed to retrieve error description %w", err)
 		}
-		return fmt.Errorf("ошибка выполнения скрипта: %v", errorStr)
+		return fmt.Errorf("script execution error: %v", errorStr)
 	}
 	return nil
 }
 
-// Load загружает скрипт Lua из файла и кладёт код на вершину стека
-// Для исполнения нужно вызвать Run()
-// name - путь к файлу
+// Load loads a Lua script from a file and pushes the code onto the top of the stack.
+// To execute it, you need to call Run().
+// name - path to the file
 func (lua *LuaRunner) LoadFile(name string) error {
 	cName := C.CString(name)
 	defer C.free(unsafe.Pointer(cName))
@@ -85,37 +85,39 @@ func (lua *LuaRunner) LoadFile(name string) error {
 	if res != 0 {
 		errorStr, err := lua.Pop()
 		if err != nil {
-			return fmt.Errorf("ошибка загрузки скрипта, ошибка получения описания ошибки %w", err)
+			return fmt.Errorf("script execution error, failed to retrieve error description %w", err)
 		}
-		return fmt.Errorf("ошибка загрузки скрипта: %v", errorStr)
+		return fmt.Errorf("script execution error: %v", errorStr)
 	}
 
 	return nil
 }
 
-// Close освобождает все ресурсы связанные с машиной Lua
+// Close releases all resources associated with the Lua VM
 func (lua *LuaRunner) Close() {
 	C.lua_close(lua.L)
 }
 
-// Push кладёт в стек машины Lua значение
+// Push pushes a value onto the Lua VM stack.
 //
-// string и[]bytes преобразуется в строку (LUA_TSTRING);
-// int, int32, int64, float32, float64 преобразуются в число (LUA_TNUMBER);
-// bool преобразуется в булево (LUA_TBOOLEAN);
-// uintptr преобразуется в LUA_TLIGHTUSERDATA;
-// nil преобразуется в LUA_TLIGHTUSERDATA(NULL) если это значение таблицы, иначе nil (LUA_TNIL).
+// string and []byte are converted to a string (LUA_TSTRING);
+// int, int32, int64, float32, float64 are converted to a number (LUA_TNUMBER),
+// beware of truncating int64 to 53 bits;
+// bool is converted to a boolean (LUA_TBOOLEAN);
+// uintptr is converted to LUA_TLIGHTUSERDATA;
+// nil is converted to LUA_TLIGHTUSERDATA(NULL) if it is a table value, otherwise to nil (LUA_TNIL).
 //
-// map[string]any преобразуется в таблицу (LUA_TTABLE), и это единственный вид map,
-// который будет эффективно передаваться в Lua, для других видов map будет использоваться
-// рефлексия. С одной стороны это позволяет использовать любые типы ключей и значений,
-// что поддерживается в Lua, с другой - рефлексия менее эффективна. Другим ограничением является
-// то, что этот пакет не позволяет получить из Lua таблицу с типами ключей отличными от строки и числа.
+// map[string]any is converted to a table (LUA_TTABLE), and it's the only map type
+// that is efficiently passed to Lua. Other map types will use reflection.
+// On one hand, this allows using arbitrary key and value types supported by Lua;
+// on the other hand, reflection is less efficient. Another limitation is that
+// this package does not allow retrieving a Lua table with key types other than string or number.
 //
-// С помощью рефлексии: разыменовываются указатели; передаются срезы и массивы в виде таблицы
-// с целочисленными ключами; передаются структуры и карты с произвольными типами ключей и значений.
+// Using reflection: pointers are dereferenced; slices and arrays are passed as tables
+// with integer keys; structs and maps with arbitrary key/value types are passed as tables.
 //
-// При получении неподдерживаемого типа данных в стек кладётся nil или LUA_TLIGHTUSERDATA(NULL)
+// If an unsupported data type is encountered, nil or LUA_TLIGHTUSERDATA(NULL) is pushed onto the stack,
+// depending on whether it's a simple scalar or a table element.
 func (lua *LuaRunner) Push(valueAny any) {
 	lua.push(valueAny, false)
 }
@@ -124,7 +126,7 @@ func (lua *LuaRunner) push(valueAny any, isTableValue bool) {
 	switch value := valueAny.(type) {
 	case nil:
 		if isTableValue {
-			// значение элемента таблицы не может быть nil
+			// table value cannot be nil
 			C.lua_pushlightuserdata(lua.L, unsafe.Pointer(nil))
 		} else {
 			C.lua_pushnil(lua.L)
@@ -163,7 +165,6 @@ func (lua *LuaRunner) push(valueAny any, isTableValue bool) {
 	}
 }
 
-// pushReflect кладёт некоторые типы значений в стек Lua через рефлексию
 func (lua *LuaRunner) pushReflect(valueAny any, isTableValue bool) {
 	reflectValue := reflect.ValueOf(valueAny)
 
@@ -204,13 +205,13 @@ func (lua *LuaRunner) pushString(str string) {
 	C.lua_pushlstring(lua.L, cStr, C.size_t(len(str)))
 }
 
-// Pop вынимает значение из стека машины Lua
+// Pop pops a value from Lua stack
 func (lua *LuaRunner) Pop() (any, error) {
 	defer C.lua_settop(lua.L, -2)
 	return lua.Get(-1)
 }
 
-// Get получает значение из стека машины Lua на глубине i без вынимания
+// Get gets a value in Lua stack by index
 func (lua *LuaRunner) Get(i int) (any, error) {
 
 	switch C.lua_type(lua.L, C.int(i)) {
@@ -226,8 +227,8 @@ func (lua *LuaRunner) Get(i int) (any, error) {
 		if val := C.lua_touserdata(lua.L, C.int(i)); val != nil {
 			return uintptr(val), nil
 		}
-		// cjson возвращает LUA_TLIGHTUSERDATA(NULL) при декодировании null в json
-		// для сравнивания есть константа cjson.null
+		// cjson and yyjson return LUA_TLIGHTUSERDATA(NULL) when decoding null in JSON
+		// For comparison, use cjson.null or yyjson.null
 		return nil, nil
 	case C.LUA_TTABLE:
 		result := make(map[string]any)
@@ -235,11 +236,11 @@ func (lua *LuaRunner) Get(i int) (any, error) {
 		for C.lua_next(lua.L, -2) != 0 {
 			keyAny, err := lua.Get(-2) // ключ
 			if err != nil {
-				return nil, fmt.Errorf("ошибка выбора ключа элемента таблицы: %w", err)
+				return nil, fmt.Errorf("error retrieving table element key: %w", err)
 			}
 			val, err := lua.Pop() // значение
 			if err != nil {
-				return nil, fmt.Errorf("ошибка выбора значения элемента таблицы: %w", err)
+				return nil, fmt.Errorf("error retrieving table element value: %w", err)
 			}
 			switch key := keyAny.(type) {
 			case string:
@@ -247,16 +248,16 @@ func (lua *LuaRunner) Get(i int) (any, error) {
 			case float64:
 				result[strconv.Itoa(int(key))] = val
 			default:
-				return nil, errors.New("ключом элемента таблицы может быть только строка или число")
+				return nil, errors.New("the key of a table element can only be a string or a number")
 			}
 		}
 		return result, nil
 	default:
-		return nil, errors.New("значение в стеке может быть только nil, строка, число, булево, таблица или Light Userdata")
+		return nil, errors.New("the value on the stack can only be nil, string, number, boolean, table, or Light Userdata")
 	}
 }
 
-// GetGlobal кладёт в стек значение глобальной переменной с именем name
+// GetGlobal pushes the value of the global variable with the name 'name' onto the stack
 func (lua *LuaRunner) GetGlobal(name string) {
 	cName := C.CString(name)
 	defer C.free(unsafe.Pointer(cName))
@@ -264,8 +265,7 @@ func (lua *LuaRunner) GetGlobal(name string) {
 	C.lua_getfield(lua.L, C.LUA_GLOBALSINDEX, cName)
 }
 
-// SetGlobal вынимает из стека значение и устанавливает
-// в качестве глобальной переменной с именем name
+// SetGlobal pops a value from the stack and sets it as the global variable with the name 'name'
 func (lua *LuaRunner) SetGlobal(name string) {
 	cName := C.CString(name)
 	defer C.free(unsafe.Pointer(cName))
@@ -273,56 +273,56 @@ func (lua *LuaRunner) SetGlobal(name string) {
 	C.lua_setfield(lua.L, C.LUA_GLOBALSINDEX, cName)
 }
 
-// Call вызывает функцию, лежащую на вершине стека
-// Для задания функции надо использовать GetGlobal
-// in - количество параметров
-// out - количество возвращаемых значений, -1 для произвольного числа
+// Call calls the function at the top of the stack
+// To set the function, use GetGlobal
+// in - number of input parameters
+// out - number of return values, -1 for a variable number
 func (lua *LuaRunner) Call(in, out int) error {
 	if C.lua_pcall(lua.L, C.int(in), C.int(out), 0) != 0 {
 		errorStr, err := lua.Pop()
 		if err != nil {
-			return fmt.Errorf("ошибка вызова функции, ошибка получения описания ошибки %w", err)
+			return fmt.Errorf("function call error, failed to retrieve error description %w", err)
 		}
-		return fmt.Errorf("ошибка вызова функции: %v", errorStr)
+		return fmt.Errorf("function call error: %v", errorStr)
 	}
 	return nil
 }
 
-// Run вызывает функцию, лежащую на вершине стека
-// без параметров и с произвольным количеством возвращаемых значений
-// Для запуска скрипта после Load и LoadFile
+// Run calls the function at the top of the stack
+// with no parameters and a variable number of return values
+// To execute the script after Load and LoadFile
 func (lua *LuaRunner) Run() error {
 	return lua.Call(0, C.LUA_MULTRET)
 }
 
-// GetStackSize возвращает текущую глубину стека машины Lua
-// Нужно для определения количества возвращенных значений после вызова функции
-// и для отладки утечек
+// GetStackSize returns the current depth of the Lua VM stack
+// It is used to determine the number of return values after a function call
+// and for debugging memory leaks
 func (lua *LuaRunner) GetStackSize() int {
 	return int(C.lua_gettop(lua.L))
 }
 
-// AddPackagePath добавляет паттерн к пути поиска файлов при вызове require (package.path)
+// AddPackagePath adds a pattern to the file search path for require (package.path)
 func (lua *LuaRunner) AddPackagePath(pattern string) {
 	lua.Load("package.path = package.path .. \";" + pattern + "\"")
 	lua.Run()
 }
 
-// AddPackageCPath добавляет паттерн к пути поиска файлов при вызове require (package.cpath)
+// AddPackageCPath adds a pattern to the file search path for require (package.cpath)
 func (lua *LuaRunner) AddPackageCPath(pattern string) {
 	lua.Load("package.cpath = package.cpath .. \";" + pattern + "\"")
 	lua.Run()
 }
 
-// StrictRead запрещает чтение неинициализированной переменной,
-// защита от опечаток
+// StrictRead prevents reading uninitialized variables,
+// protecting against typos.
 func (lua *LuaRunner) StrictRead() {
 	lua.Load(`setmetatable(_G, { __index = function (_, key) error("Attempt to read an uninitialized variable: " .. tostring(key), 2) end })`)
 	lua.Run()
 }
 
-// StrictWrite запрещает запись в необъявленную переменную,
-// заставляя явно объявлять переменную через local
+// StrictWrite prevents writing to undeclared global variables;
+// It is useful to call it after initializing the script.
 func (lua *LuaRunner) StrictWrite() {
 	lua.Load(`setmetatable(_G, { __newindex = function (_, key, _) error("Attempt to write to undeclared variable: " .. tostring(key), 2) end })`)
 	lua.Run()
