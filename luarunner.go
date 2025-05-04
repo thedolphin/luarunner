@@ -2,12 +2,6 @@
 package luarunner
 
 /*
-#cgo darwin CFLAGS: -I/opt/local/include -I/opt/local/include/luajit-2.1
-#cgo darwin LDFLAGS: -L/opt/local/lib -lluajit-5.1 -lyyjson
-
-#cgo linux CFLAGS: -I/usr/include -I/usr/include/luajit-2.1
-#cgo linux amd64 LDFLAGS: /usr/lib/x86_64-linux-gnu/libluajit-5.1.a /usr/lib/x86_64-linux-gnu/libyyjson.a -lm
-
 #include <stdlib.h>
 
 #include <lua.h>

@@ -117,7 +117,7 @@ print("=== [yyjson done] =======================")
 	lua, err := luarunner.New()
 
 	if err != nil {
-		t.Error("Не удалось инициализировать LUA-машину: ", err)
+		t.Error("Failed to initialize Lua VM: ", err)
 		return
 	}
 
@@ -126,17 +126,17 @@ print("=== [yyjson done] =======================")
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			if err = lua.Load(test.code); err != nil {
-				t.Error("Не удалось загрузить скрипт: ", err)
+				t.Error("Could not load script: ", err)
 				return
 			}
 
 			if err = lua.Run(); err != nil {
-				t.Error("Не удалось выполнить скрипт: ", err)
+				t.Error("Could not run script: ", err)
 				return
 			}
 
 			if size := lua.GetStackSize(); size != 0 {
-				t.Error("Стек не пустой: ", size)
+				t.Error("Stach is not empty: ", size)
 			}
 		})
 	}
