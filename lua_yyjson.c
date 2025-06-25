@@ -57,7 +57,7 @@ int lua_yyjson_new(lua_State *L) {
 int lua_yyjson_load(lua_State *L) {
 
     size_t jsonlen;
-    const char *json = luaL_checklstring(L, -1, &jsonlen);
+    const char *json = luaL_checklstring(L, 1, &jsonlen);
 
     yyjson_node *node = lua_newuserdata(L, sizeof(yyjson_node));
     memset(node, 0, sizeof(yyjson_node));
@@ -80,7 +80,7 @@ int lua_yyjson_load(lua_State *L) {
 int lua_yyjson_load_mut(lua_State *L) {
 
     size_t jsonlen;
-    const char *json = luaL_checklstring(L, -1, &jsonlen);
+    const char *json = luaL_checklstring(L, 1, &jsonlen);
 
     yyjson_mut_node *node = lua_newuserdata(L, sizeof(yyjson_mut_node));
     memset(node, 0, sizeof(yyjson_mut_node));
