@@ -15,7 +15,9 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"runtime"
 	"strconv"
+	"time"
 	"unsafe"
 )
 
@@ -128,13 +130,15 @@ func (lua *LuaRunner) push(valueAny any, isTableValue bool) {
 	case string:
 		lua.pushString(value)
 	case []byte:
-		lua.pushString(string(value))
+		lua.pushBytes(value)
 	case int:
 		C.lua_pushinteger(lua.L, C.lua_Integer(value))
 	case int32:
 		C.lua_pushinteger(lua.L, C.lua_Integer(value))
 	case int64:
 		C.lua_pushinteger(lua.L, C.lua_Integer(value))
+	case time.Time: // Lua function os.Date operates on the unix epoch
+		C.lua_pushinteger(lua.L, C.lua_Integer(value.Unix()))
 	case float32:
 		C.lua_pushnumber(lua.L, C.lua_Number(value))
 	case float64:
@@ -193,10 +197,15 @@ func (lua *LuaRunner) pushReflect(valueAny any, isTableValue bool) {
 }
 
 func (lua *LuaRunner) pushString(str string) {
-	cStr := C.CString(str)
-	defer C.free(unsafe.Pointer(cStr))
-
+	cStr := (*C.char)(unsafe.Pointer(unsafe.StringData(str)))
 	C.lua_pushlstring(lua.L, cStr, C.size_t(len(str)))
+	runtime.KeepAlive(str)
+}
+
+func (lua *LuaRunner) pushBytes(data []byte) {
+	cData := (*C.char)(unsafe.Pointer(unsafe.SliceData(data)))
+	C.lua_pushlstring(lua.L, cData, C.size_t(len(data)))
+	runtime.KeepAlive(data)
 }
 
 // Pop pops a value from Lua stack
