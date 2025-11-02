@@ -21,13 +21,14 @@ A fast and non-destructive Lua library for working with JSON.
 The JSON document is stored in internal yyjson structures and is not marshalled or unmarshalled to Lua values.
 Creating JSON arrays is not supported.
 
-1. `yyjson.load` - parses JSON into a read-only readonly object
+1. `yyjson.load` - parses JSON into a read-only object
 1. `yyjson.load_mut` - parses JSON into a mutable object
 1. `yyjson.new` - creates a new mutable JSON object
 1. `yyjson.null` - null constant
 1. `tostring(v)` - serializes a mutable JSON object to a string
 
 #### examples
+
 ```lua
 j = yyjson.new() -- create an empty JSON object
 j = yyjson.load(json_string) -- load JSON for read-only access (faster)

@@ -45,7 +45,6 @@ func (lua *LuaRunner) CheckFunction(funcName string) bool {
 	lua.GetGlobal(funcName)
 	v := C.lua_type(lua.L, -1)
 	if v != C.LUA_TFUNCTION {
-		lua.Close()
 		return false
 	}
 	C.lua_settop(lua.L, -2)
