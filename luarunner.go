@@ -167,7 +167,11 @@ func (lua *LuaRunner) pushReflect(valueAny any, isTableValue bool) {
 
 	switch reflectValue.Kind() {
 	case reflect.Pointer:
-		lua.push(reflectValue.Elem().Interface(), isTableValue)
+		if reflectValue.IsNil() {
+			lua.push(nil, isTableValue)
+		} else {
+			lua.push(reflectValue.Elem().Interface(), isTableValue)
+		}
 	case reflect.Slice, reflect.Array:
 		C.lua_createtable(lua.L, 0, 0)
 		for i := range reflectValue.Len() {
